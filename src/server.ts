@@ -1,5 +1,6 @@
 import app from "./app";
 import config from "./app/config";
+import { transporter } from "./app/lib/nodemailer";
 import { prisma } from "./app/lib/prisma";
 import { redisCLient } from "./app/lib/redis";
 
@@ -13,6 +14,9 @@ const main = async () => {
 		
 		await redisCLient.connect()
 		console.log("Redis client connected successfully");
+
+		await transporter.verify()
+		console.log("Nodemailer connected successfully");
 
 		app.listen(PORT, () => {
 			console.log(`Server is running on port ${PORT}`);

@@ -19,6 +19,7 @@ import { googleClient } from "../../lib/googleClient";
 
 import crypto from "crypto";
 import { redisCLient } from "../../lib/redis";
+import { transporter } from "../../lib/nodemailer";
 
 const registerPatient = async (payload: IRegisterPatientPayload) => {
 	const { name, password } = payload;
@@ -359,6 +360,13 @@ const forgotPassword = async (payload: any) => {
 			value: 5 * 60,
 		},
 	});
+
+	await transporter.sendMail({
+		from: config.smtp_user,
+		to: isUserExists.email,
+		subject: "Forgot Password",
+		text: `Your OTP is ${otp}`,
+	});
 };
 
 const resetPassword = async (payload: any) => {
@@ -408,8 +416,14 @@ const resetPassword = async (payload: any) => {
 		},
 	});
 
-	await redisCLient.del([key])
+	await redisCLient.del([key]);
 
+	await transporter.sendMail({
+		from:config.smtp_user,
+		to:isUserExists.email,
+		subject:"Change Password",
+		text:"Your password is changed"
+	})
 };
 
 export const AuthService = {
