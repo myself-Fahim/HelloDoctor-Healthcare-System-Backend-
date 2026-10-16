@@ -11,6 +11,10 @@ const router = Router();
 router.post(
 	"/register",validateRequest(PatientRegistrationSchema),AuthController.registerPatient,
 );
+
+router.post(
+	"/verify-email",AuthController.verifyEmail,
+);
 router.post("/login",validateRequest(UserLoginSchema),AuthController.loginUser);
 
 router.get(

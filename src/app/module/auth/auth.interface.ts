@@ -18,6 +18,11 @@ export interface IRequestUser {
 	role: Role;
 }
 
+export interface IVeriyEmail {
+	otp:string,
+	email:string
+} 
+
 export interface IGooglePayload  {
 	idToken : string
 }
