@@ -9,10 +9,12 @@ import config from "../../config";
 import { prisma } from "../../lib/prisma";
 import { jwtUtils } from "../../utils/jwt";
 import {
+	IForgotPassword,
 	IGooglePayload,
 	ILoginUserPayload,
 	IRegisterPatientPayload,
 	IRequestUser,
+	IResetPassword,
 } from "./auth.interface";
 import { OAuth2Client } from "google-auth-library";
 import { googleClient } from "../../lib/googleClient";
@@ -326,7 +328,7 @@ const googleLogin = async (payload: IGooglePayload) => {
 	};
 };
 
-const forgotPassword = async (payload: any) => {
+const forgotPassword = async (payload: IForgotPassword) => {
 	const { email } = payload;
 
 	const isUserExists = await prisma.user.findUnique({
@@ -369,7 +371,7 @@ const forgotPassword = async (payload: any) => {
 	});
 };
 
-const resetPassword = async (payload: any) => {
+const resetPassword = async (payload: IResetPassword) => {
 	const { email, newPassword, otp } = payload;
 
 	const isUserExists = await prisma.user.findUnique({
