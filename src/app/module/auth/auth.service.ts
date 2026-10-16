@@ -22,6 +22,8 @@ import { googleClient } from "../../lib/googleClient";
 import crypto from "crypto";
 import { redisCLient } from "../../lib/redis";
 import { transporter } from "../../lib/nodemailer";
+import ejs from "ejs"
+import path from "path";
 
 const registerPatient = async (payload: IRegisterPatientPayload) => {
 	const { name, password } = payload;
@@ -363,11 +365,19 @@ const forgotPassword = async (payload: IForgotPassword) => {
 		},
 	});
 
+	const templatePath = path.join(process.cwd(),"/src/app/templates/forgot-passsword.ejs")
+	const html = await ejs.renderFile(templatePath,{
+		otp,
+		userName:isUserExists.name,
+		expirationTime:5
+	})
+
+
 	await transporter.sendMail({
 		from: config.smtp_user,
 		to: isUserExists.email,
 		subject: "Forgot Password",
-		text: `Your OTP is ${otp}`,
+		html,
 	});
 };
 
@@ -420,11 +430,16 @@ const resetPassword = async (payload: IResetPassword) => {
 
 	await redisCLient.del([key]);
 
+	const templatePath = path.join(process.cwd(),"src/app/templates/reset-password.ejs")
+	const html = await ejs.renderFile(templatePath,{
+		userName : isUserExists.name
+	})
+
 	await transporter.sendMail({
 		from:config.smtp_user,
 		to:isUserExists.email,
 		subject:"Change Password",
-		text:"Your password is changed"
+        html
 	})
 };
 
