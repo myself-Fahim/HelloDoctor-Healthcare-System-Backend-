@@ -18,12 +18,13 @@ const registerPatient = catchAsync(async (req: Request, res: Response) => {
 });
 
 const verifyEmail = catchAsync(async (req: Request, res: Response) => {
+
 	const payload = req.body;
 	const {user,patient,accessToken,refreshToken} = await AuthService.verifyEmail(payload);
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
 		success: true,
-		message: "User created successfully",
+		message: "Email Verified Successfully",
 		data: {
 			user,
 			patient,
@@ -31,6 +32,7 @@ const verifyEmail = catchAsync(async (req: Request, res: Response) => {
 			refreshToken
 		},
 	});
+	
 
 });
 

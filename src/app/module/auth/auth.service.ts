@@ -28,8 +28,6 @@ import path from "path";
 import nodemailer from "nodemailer";
 
 const registerPatient = async (payload: IRegisterPatientPayload) => {
-
-	
 	const { name, password } = payload;
 	const email = payload.email.trim().toLowerCase();
 
@@ -66,19 +64,22 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
 		},
 	});
 
-	const verificationEjsFilePath = path.join(process.cwd(),"src/app/templates/verification-email.ejs")
-	const html = await ejs.renderFile(verificationEjsFilePath,{
+	const verificationEjsFilePath = path.join(
+		process.cwd(),
+		"src/app/templates/verification-email.ejs",
+	);
+	const html = await ejs.renderFile(verificationEjsFilePath, {
 		otp,
-		userName:name,
-		expirationTime:5
-	})
+		userName: name,
+		expirationTime: 5,
+	});
 
 	await transporter.sendMail({
-		from:config.smtp_user,
-		to:email,
-		subject:"Email verification OTP",
-		html
-	})
+		from: config.smtp_user,
+		to: email,
+		subject: "Email verification OTP",
+		html,
+	});
 
 	// const createdUser = await prisma.user.create({
 	// 	data: {
@@ -124,48 +125,63 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
 	// };
 };
 
-
-const verifyEmail = async(payload : IVeriyEmail) =>{
-
-	const {email,otp} = payload
-
-	console.log("From verify-token",otp,email);
-
-	const getRedisOtp = await redisCLient.get(`verify-email-otp:${email}`)
-
-	if(!getRedisOtp){
-		throw new Error("OTP is invalid")
-	}
-	if(getRedisOtp !== otp){
-		throw new Error("OTP doesn't matched")
-	}
-
-	const userPayload = await redisCLient.get(`verify-email-payload:${email}`)
-	if(!userPayload){
-		throw new Error("User doesn't exist")
-	}
-
-	const userData = JSON.parse(userPayload)
+const verifyEmail = async (payload: IVeriyEmail) => {
+	const { email, otp } = payload;
 
 	
 
-		const createdUser = await prisma.user.create({
+	const getRedisOtp = await redisCLient.get(`verify-email-otp:${email}`);
+
+	if (!getRedisOtp) {
+		throw new Error("OTP is invalid");
+	}
+	if (getRedisOtp !== otp) {
+		throw new Error("OTP doesn't matched");
+	}
+
+	const userPayload = await redisCLient.get(`verify-email-payload:${email}`);
+	if (!userPayload) {
+		throw new Error("User doesn't exist");
+	}
+
+	const userData = JSON.parse(userPayload);
+
+	const createdUser = await prisma.user.create({
 		data: {
-			name : userData.name,
-			email:userData.email,
+			name: userData.name,
+			email: userData.email,
 			password: userData.password,
 			role: Role.PATIENT,
 			status: UserStatus.ACTIVE,
 			emailVerified: true,
 			patient: {
-				create:{
-					name:userData.name,
-					email:userData.email
-				}
-			}
+				create: {
+					name: userData.name,
+					email: userData.email,
+				},
+			},
 		},
 		omit: { password: true },
 		include: { patient: true },
+	});
+
+	await redisCLient.del(`verify-email-payload:${email}`)
+	await redisCLient.del(`verify-email-otp:${email}`)
+
+
+	const welcomeEmailEjsFilePath = path.join(
+		process.cwd(),
+		"src/app/templates/welcome-email.ejs",
+	);
+	const html = await ejs.renderFile(welcomeEmailEjsFilePath, {
+		userName: createdUser.name,
+	});
+
+	await transporter.sendMail({
+		from: config.smtp_user,
+		to: email,
+		subject: "Welcome to Hello-Doctor Healthcare System",
+		html,
 	});
 
 	const { patient, ...user } = createdUser;
@@ -188,19 +204,13 @@ const verifyEmail = async(payload : IVeriyEmail) =>{
 		config.jwt_refresh_expires_in as SignOptions,
 	);
 
-	await redisCLient.del(`verify-email-otp:${email}`)
-	await redisCLient.del(`verify-email-payload:${email}`)
-
 	return {
 		user,
 		patient,
 		accessToken,
 		refreshToken,
 	};
-
-
-
-}
+};
 
 const loginUser = async (payload: ILoginUserPayload) => {
 	const { password } = payload;
@@ -575,5 +585,5 @@ export const AuthService = {
 	googleLogin,
 	forgotPassword,
 	resetPassword,
-	verifyEmail
+	verifyEmail,
 };
