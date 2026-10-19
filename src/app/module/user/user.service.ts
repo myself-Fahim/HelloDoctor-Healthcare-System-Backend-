@@ -4,6 +4,14 @@ import { prisma } from "../../lib/prisma";
 
 
 const updateProfilePicture = async (payload: Buffer, userId: string) => {
+    const currentUser = await prisma.user.findUnique({
+        where:{
+            id:userId
+        },
+        select:{
+            imageID:true
+        }
+    })
 
     const cloudinaryResult = await new Promise<UploadApiResponse>((resolve,reject)=>{
         cloudinary.uploader
@@ -37,6 +45,10 @@ const updateProfilePicture = async (payload: Buffer, userId: string) => {
             password:true
         }
     })
+
+    if(currentUser && currentUser?.imageID){
+        await cloudinary.uploader.destroy(currentUser.imageID)
+    }
 
     return result
 	
