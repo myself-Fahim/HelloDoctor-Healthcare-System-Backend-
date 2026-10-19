@@ -7,6 +7,7 @@ import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { AuthRoutes } from "./app/module/auth/auth.route";
 import { redisCLient } from "./app/lib/redis";
+import { UserRoutes } from "./app/module/user/user.route";
 
 const app: Application = express();
 
@@ -25,21 +26,22 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api/v1/auth", AuthRoutes);
+app.use("/api/v1/user", UserRoutes);
 
-app.get("/test", async(req: Request, res: Response) => {
+// app.get("/test", async(req: Request, res: Response) => {
 
-	await redisCLient.set("forgot-password:patient1@gmail.com","123456" ,{
-		expiration:{
-			type : "EX",
-			value : 60
-		}
-	})
+// 	await redisCLient.set("forgot-password:patient1@gmail.com","123456" ,{
+// 		expiration:{
+// 			type : "EX",
+// 			value : 60
+// 		}
+// 	})
 
-	res.status(httpStatus.OK).json({
-		success: true,
-		message: "Welcome to PH Healthcare System Backend",
-	});
-});
+// 	res.status(httpStatus.OK).json({
+// 		success: true,
+// 		message: "Welcome to PH Healthcare System Backend",
+// 	});
+// });
 
 
 // Basic route
