@@ -8,6 +8,7 @@ import { notFound } from "./app/middleware/notFound";
 import { AuthRoutes } from "./app/module/auth/auth.route";
 import { redisCLient } from "./app/lib/redis";
 import { UserRoutes } from "./app/module/user/user.route";
+import { getBkashIdToken } from "./app/lib/bkash";
 
 const app: Application = express();
 
@@ -46,9 +47,15 @@ app.use("/api/v1/user", UserRoutes);
 
 // Basic route
 app.get("/", async (req: Request, res: Response) => {
+
+
+	const getBkashToken = await getBkashIdToken()
+	console.log(getBkashToken);
+
 	res.status(httpStatus.OK).json({
 		success: true,
 		message: "Welcome to PH Healthcare System Backend",
+		data:null
 	});
 });
 
