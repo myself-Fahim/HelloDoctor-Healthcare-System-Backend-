@@ -9,6 +9,7 @@ import { AuthRoutes } from "./app/module/auth/auth.route";
 import { redisCLient } from "./app/lib/redis";
 import { UserRoutes } from "./app/module/user/user.route";
 import { getBkashIdToken } from "./app/lib/bkash";
+import { appoinmentRoutes } from "./app/module/appoinment/appoinment.route";
 
 const app: Application = express();
 
@@ -28,21 +29,8 @@ app.use(cookieParser());
 
 app.use("/api/v1/auth", AuthRoutes);
 app.use("/api/v1/user", UserRoutes);
+app.use('/api/v1/appoinment',appoinmentRoutes)
 
-// app.get("/test", async(req: Request, res: Response) => {
-
-// 	await redisCLient.set("forgot-password:patient1@gmail.com","123456" ,{
-// 		expiration:{
-// 			type : "EX",
-// 			value : 60
-// 		}
-// 	})
-
-// 	res.status(httpStatus.OK).json({
-// 		success: true,
-// 		message: "Welcome to PH Healthcare System Backend",
-// 	});
-// });
 
 
 // Basic route
