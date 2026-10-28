@@ -1,0 +1,47 @@
+-- CreateEnum
+CREATE TYPE "AppoinmentStatus" AS ENUM ('PENDING', 'CONFIRM', 'ONGOING', 'COMPLETE', 'CANCELED');
+
+-- CreateEnum
+CREATE TYPE "PaymentStatus" AS ENUM ('UNPAID', 'PAID', 'FAILED', 'REFUNDED', 'CANCELLED');
+
+-- CreateTable
+CREATE TABLE "appoinments" (
+    "id" TEXT NOT NULL,
+    "status" "AppoinmentStatus" NOT NULL DEFAULT 'PENDING',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "appoinments_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "payments" (
+    "id" TEXT NOT NULL,
+    "bkashPaymentId" TEXT,
+    "appoinmentId" TEXT NOT NULL,
+    "status" "PaymentStatus" NOT NULL DEFAULT 'UNPAID',
+    "currency" TEXT NOT NULL DEFAULT 'BDT',
+    "amount" DECIMAL(10,2) NOT NULL,
+    "bkashTrxId" TEXT,
+    "payerReference" TEXT,
+    "merchantInvoiceNumber" TEXT,
+    "gatewayResponse" JSONB,
+    "refundTrxId" TEXT,
+    "refundAmount" DECIMAL(10,2),
+    "refundReason" TEXT,
+    "refundAt" TEXT,
+    "paidAt" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "payments_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "payments_bkashPaymentId_key" ON "payments"("bkashPaymentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "payments_appoinmentId_key" ON "payments"("appoinmentId");
+
+-- AddForeignKey
+ALTER TABLE "payments" ADD CONSTRAINT "payments_appoinmentId_fkey" FOREIGN KEY ("appoinmentId") REFERENCES "appoinments"("id") ON DELETE CASCADE ON UPDATE CASCADE;

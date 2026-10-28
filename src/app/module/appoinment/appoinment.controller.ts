@@ -5,9 +5,9 @@ import { sendResponse } from "../../utils/sendResponse";
 import { appoinmentService } from "./appoinment.service";
 
 const bookAppoinment = catchAsync(async (req: Request, res: Response) => {
-	const result = await appoinmentService.bookAppoinment();
+	
+	const result = await appoinmentService.bookAppoinment(req.body,req.user!);
 
-	// console.log("Create payment",result)
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
 		success: true,
@@ -18,8 +18,8 @@ const bookAppoinment = catchAsync(async (req: Request, res: Response) => {
 });
 const bookAppoinmentCallback = catchAsync(async (req: Request, res: Response) => {
 	const query = req.query
-	const { executePaymentResult, redirectUrl } = await appoinmentService.bookAppoinmentCallback(query);
-	console.log("From controller",executePaymentResult);
+	const {  redirectUrl } = await appoinmentService.bookAppoinmentCallback(query);
+
 	res.redirect(redirectUrl)
 
 	// sendResponse(res, {
