@@ -16,6 +16,25 @@ const bookAppoinment = catchAsync(async (req: Request, res: Response) => {
 	});
 
 });
+
+const payPendingPayment = catchAsync(async (req: Request, res: Response) => {
+	
+	const result = await appoinmentService.payPendingPayment(req.body,req.user!);
+
+	sendResponse(res, {
+		statusCode: httpStatus.CREATED,
+		success: true,
+		message: "Appoinment Payment Created Successfully",
+		data: result,
+	});
+
+});
+
+
+
+
+
+
 const bookAppoinmentCallback = catchAsync(async (req: Request, res: Response) => {
 	const query = req.query
 	const {  redirectUrl } = await appoinmentService.bookAppoinmentCallback(query);
@@ -34,5 +53,6 @@ const bookAppoinmentCallback = catchAsync(async (req: Request, res: Response) =>
 
 export const appoinmentController = {
 	bookAppoinment,
-	bookAppoinmentCallback
+	bookAppoinmentCallback,
+	payPendingPayment
 };

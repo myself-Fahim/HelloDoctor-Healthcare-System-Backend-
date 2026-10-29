@@ -21,7 +21,7 @@ const bookAppoinment = async (payload: any, user: { userId: string, email: strin
             throw new Error('Invalid bkash id token')
         }
 
-        const createBookingpaymentLink = await fetch(`${config.bkash_base_url}/v2/tokenized-checkout/payment/create`, {
+        const createAppoinmentPaymentLink = await fetch(`${config.bkash_base_url}/v2/tokenized-checkout/payment/create`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -40,13 +40,13 @@ const bookAppoinment = async (payload: any, user: { userId: string, email: strin
             })
         })
 
-        const bookingPaymentCreateResult = await createBookingpaymentLink.json()
+        const bookingPaymentCreateResult = await createAppoinmentPaymentLink.json()
 
 
         await tx.payment.create({
             data: {
                 appoinmentId: createAppoinment.id,
-                bkashPaymentId:bookingPaymentCreateResult.paymentId,
+                bkashPaymentId: bookingPaymentCreateResult.paymentId,
                 amount: "1200",
                 merchantInvoiceNumber: createAppoinment.id,
                 payerReference: user.email,
@@ -60,6 +60,59 @@ const bookAppoinment = async (payload: any, user: { userId: string, email: strin
     })
 
     return transactionResult.bkashURL
+}
+
+const payPendingPayment = async (payload: any,user:{ userId: string, email: string, name: string, role: Role }) => {
+
+    const { appoinmentId } = payload
+
+    const pendingAppoinment = await prisma.appoinment.findUnique({
+        where: {
+            id: appoinmentId
+        }
+    })
+
+    if (!pendingAppoinment) {
+        throw new Error("Appoinment doesn't exist ")
+    }
+
+    if (pendingAppoinment.status !== AppoinmentStatus.PENDING) {
+        throw new Error("Appoinment already proceed")
+    }
+
+    const bkashIdToken = await getBkashIdToken()
+
+    const createAppoinmentPaymentLink = await fetch(`${config.bkash_base_url}/v2/tokenized-checkout/payment/create`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: bkashIdToken,
+                "X-App-Key": config.bkash_app_key!
+            },
+            body: JSON.stringify({
+                payerReference: user.email,
+                callbackURL: `${config.bkash_callback_url}/appoinment/book-appoinment/payment/callback`,
+                amount: "1200",
+                currency: "BDT",
+                intent: "sale",
+                merchantInvoiceNumber: pendingAppoinment.id,
+                subMerchantName: "Test",
+                merchantAssociationInfo: "MI05MID54RF09123456789"
+            })
+        })
+
+        const createPaymentResult = await createAppoinmentPaymentLink.json()
+        await prisma.payment.update({
+            where:{
+                appoinmentId
+            },
+            data:{
+                bkashPaymentId:createPaymentResult.paymentId
+            }
+        })
+
+    
+        return createPaymentResult.bkashURL
 }
 
 const bookAppoinmentCallback = async (query: Record<string, any>) => {
@@ -95,7 +148,7 @@ const bookAppoinmentCallback = async (query: Record<string, any>) => {
 
     const executePaymentResult = await executeBkashPayment.json()
 
-  
+
     if (status === 'success') {
 
 
@@ -129,12 +182,12 @@ const bookAppoinmentCallback = async (query: Record<string, any>) => {
 
 
         },
-        {
-             maxWait: 10000, // time to wait to get a connection (default 2000)
-             timeout: 15000, // max time the transaction may run (default 5000)
-        }
-    
-    )
+            {
+                maxWait: 10000, // time to wait to get a connection (default 2000)
+                timeout: 15000, // max time the transaction may run (default 5000)
+            }
+
+        )
 
         return transactionResult
 
@@ -144,7 +197,7 @@ const bookAppoinmentCallback = async (query: Record<string, any>) => {
     else if (status === 'failure') {
         await prisma.payment.update({
             where: {
-                bkashPaymentId:paymentID
+                bkashPaymentId: paymentID
             },
             data: {
                 bkashPaymentId: executePaymentResult.paymentId,
@@ -156,12 +209,12 @@ const bookAppoinmentCallback = async (query: Record<string, any>) => {
             redirectUrl: `${config.client_url}/dashboard/my-payment?status=failure`
         }
     }
-    
+
     else if (status === 'cancel') {
 
         await prisma.payment.update({
             where: {
-               bkashPaymentId:paymentID
+                bkashPaymentId: paymentID
             },
             data: {
                 bkashPaymentId: executePaymentResult.paymentId,
@@ -182,5 +235,6 @@ const bookAppoinmentCallback = async (query: Record<string, any>) => {
 
 export const appoinmentService = {
     bookAppoinment,
-    bookAppoinmentCallback
+    bookAppoinmentCallback,
+    payPendingPayment
 }
