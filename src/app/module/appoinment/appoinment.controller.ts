@@ -29,6 +29,18 @@ const payPendingPayment = catchAsync(async (req: Request, res: Response) => {
 	});
 
 });
+const cancelAppoinment = catchAsync(async (req: Request, res: Response) => {
+	
+	const result = await appoinmentService.cancelAppoinment(req.body);
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Appoinment Cancelled Successfully",
+		data: result,
+	});
+
+});
 
 
 
@@ -54,5 +66,6 @@ const bookAppoinmentCallback = catchAsync(async (req: Request, res: Response) =>
 export const appoinmentController = {
 	bookAppoinment,
 	bookAppoinmentCallback,
-	payPendingPayment
+	payPendingPayment,
+	cancelAppoinment
 };

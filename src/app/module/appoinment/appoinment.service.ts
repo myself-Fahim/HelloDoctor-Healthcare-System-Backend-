@@ -62,7 +62,7 @@ const bookAppoinment = async (payload: any, user: { userId: string, email: strin
     return transactionResult.bkashURL
 }
 
-const payPendingPayment = async (payload: any,user:{ userId: string, email: string, name: string, role: Role }) => {
+const payPendingPayment = async (payload: any, user: { userId: string, email: string, name: string, role: Role }) => {
 
     const { appoinmentId } = payload
 
@@ -83,36 +83,36 @@ const payPendingPayment = async (payload: any,user:{ userId: string, email: stri
     const bkashIdToken = await getBkashIdToken()
 
     const createAppoinmentPaymentLink = await fetch(`${config.bkash_base_url}/v2/tokenized-checkout/payment/create`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: bkashIdToken,
-                "X-App-Key": config.bkash_app_key!
-            },
-            body: JSON.stringify({
-                payerReference: user.email,
-                callbackURL: `${config.bkash_callback_url}/appoinment/book-appoinment/payment/callback`,
-                amount: "1200",
-                currency: "BDT",
-                intent: "sale",
-                merchantInvoiceNumber: pendingAppoinment.id,
-                subMerchantName: "Test",
-                merchantAssociationInfo: "MI05MID54RF09123456789"
-            })
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: bkashIdToken,
+            "X-App-Key": config.bkash_app_key!
+        },
+        body: JSON.stringify({
+            payerReference: user.email,
+            callbackURL: `${config.bkash_callback_url}/appoinment/book-appoinment/payment/callback`,
+            amount: "1200",
+            currency: "BDT",
+            intent: "sale",
+            merchantInvoiceNumber: pendingAppoinment.id,
+            subMerchantName: "Test",
+            merchantAssociationInfo: "MI05MID54RF09123456789"
         })
+    })
 
-        const createPaymentResult = await createAppoinmentPaymentLink.json()
-        await prisma.payment.update({
-            where:{
-                appoinmentId
-            },
-            data:{
-                bkashPaymentId:createPaymentResult.paymentId
-            }
-        })
+    const createPaymentResult = await createAppoinmentPaymentLink.json()
+    await prisma.payment.update({
+        where: {
+            appoinmentId
+        },
+        data: {
+            bkashPaymentId: createPaymentResult.paymentId
+        }
+    })
 
-    
-        return createPaymentResult.bkashURL
+
+    return createPaymentResult.bkashURL
 }
 
 const bookAppoinmentCallback = async (query: Record<string, any>) => {
@@ -233,8 +233,102 @@ const bookAppoinmentCallback = async (query: Record<string, any>) => {
 
 }
 
+
+const cancelAppoinment = async (payload: any) => {
+
+    const { appoinmentId } = payload
+
+    const isAppoinmentExist = await prisma.appoinment.findUnique({
+        where: {
+            id: appoinmentId
+        },
+        include: {
+            payment: true
+        }
+    })
+
+    if (!isAppoinmentExist) {
+        throw new Error("Appoinment doesn't exist")
+    }
+
+    if (isAppoinmentExist.status !== AppoinmentStatus.PENDING && isAppoinmentExist.status !== AppoinmentStatus.CONFIRM) {
+        throw new Error("Assignment already Ongoing , Cancelled or Completed")
+    }
+
+    const bkashIdToken = await getBkashIdToken()
+    if (!bkashIdToken) {
+        throw new Error("BKash Id Token Not Found")
+    }
+
+
+    const transactionResult = await prisma.$transaction(async (tx) => {
+
+        let refundedResponse = {}
+
+
+        const updatedAppoinment = await tx.appoinment.update({
+            where: {
+                id: appoinmentId
+            },
+            data: {
+                status: AppoinmentStatus.CANCELED
+            }
+        })
+
+
+
+        if (isAppoinmentExist.payment?.status === PaymentStatus.PAID) {
+            const refundedBkashAmount = await fetch(`${config.bkash_base_url}/v2/tokenized-checkout/refund/payment/transaction`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: bkashIdToken,
+                    "X-App-Key": config.bkash_app_key!
+                },
+                body: JSON.stringify({
+                    paymentId: isAppoinmentExist.payment?.bkashPaymentId,
+                    refundAmount: isAppoinmentExist.payment?.amount,
+                    trxId: isAppoinmentExist.payment.bkashTrxId,
+                    reason: "Cancel The Schedule",
+                    sku: "Money Return"
+                })
+            })
+
+            const refundedBkashAmountResult = await refundedBkashAmount.json()
+
+
+            const updatedPayment = await tx.payment.update({
+                where: {
+                    appoinmentId
+                },
+                data: {
+                    status: PaymentStatus.REFUNDED,
+                    refundAmount: refundedBkashAmountResult.refundAmount,
+                    refundTrxId: refundedBkashAmountResult.refundTrxId,
+                    refundReason: refundedBkashAmountResult.reason,
+                    refundAt: refundedBkashAmountResult.completedTime,
+                    gatewayResponse: refundedBkashAmountResult
+                }
+            })
+
+            refundedResponse = {
+                payment: updatedPayment,
+                appoinment: updatedAppoinment
+            }
+
+        }
+
+        return refundedResponse
+        
+    })
+
+    return transactionResult
+
+}
+
 export const appoinmentService = {
     bookAppoinment,
     bookAppoinmentCallback,
-    payPendingPayment
+    payPendingPayment,
+    cancelAppoinment
 }
