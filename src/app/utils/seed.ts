@@ -103,6 +103,14 @@ export const seedDoctor = async () => {
 				password:hashPassword,
 				emailVerified: true,
 				needPasswordChange: false,
+				doctor:{
+					create:{
+						name:"Md Tarek",
+						specialization:"Neurology",
+						qualification:"MBBS and FCPS-Part1",
+						licenseNumber:"BMDC-2101000310"
+					}
+				}
 			},
 		});
         console.log(result);
